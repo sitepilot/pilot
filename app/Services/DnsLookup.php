@@ -30,9 +30,13 @@ class DnsLookup
     {
         $type = strtoupper($type);
 
+        // -4 forces IPv4 transport. Without it, +trace tries to reach each
+        // root/TLD/authoritative server over IPv6 too; on hosts with IPv6
+        // configured but no working route (common on macOS) every AAAA hop
+        // stalls until timeout, turning a ~0.1s trace into seconds.
         $command = $resolver !== null
             ? ['dig', '+short', $type, $domain, '@'.$resolver]
-            : ['dig', '+trace', '+nodnssec', $type, $domain];
+            : ['dig', '-4', '+trace', '+nodnssec', $type, $domain];
 
         $result = Process::run($command);
 
