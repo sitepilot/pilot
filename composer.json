@@ -18,7 +18,9 @@
     "require": {
         "php": "^8.2",
         "illuminate/http": "^12.17",
-        "laravel-zero/framework": "^12.0.2"
+        "illuminate/validation": "^12.0",
+        "laravel-zero/framework": "^12.0.2",
+        "symfony/yaml": "^8.1"
     },
     "require-dev": {
         "laravel/pint": "^1.25.1",
