@@ -1,0 +1,21 @@
+sites:
+  example:
+    url: https://example.com
+    host: 5.6.7.8
+    port: 2222
+    user: bob
+    path: /var/www/example
+    source:
+      host: 1.2.3.4
+      port: 22
+      user: alice
+      path: /var/www/example
+  another-site:
+    url: https://another.example.com
+    host: 8.8.8.8
+    user: dave
+    path: /var/www/another
+    source:
+      host: 9.9.9.9
+      user: carol
+      path: /var/www/another

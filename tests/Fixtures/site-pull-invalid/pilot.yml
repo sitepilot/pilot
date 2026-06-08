@@ -1,0 +1,7 @@
+sites:
+  example:
+    port: 2222
+    user: bob
+    source:
+      port: 22
+      user: alice
