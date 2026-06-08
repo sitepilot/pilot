@@ -2,93 +2,70 @@
 
 namespace App\Services;
 
-use Illuminate\Contracts\Process\ProcessResult;
-use Illuminate\Support\Facades\Process;
-use RuntimeException;
+use App\Services\Concerns\QuotesShellPaths;
 
 /**
- * Wraps the local `wp` (WP-CLI) binary. The remote database is exported using
- * WP-CLI's `--ssh` flag, which runs the export on the remote host (it requires
- * `wp` to be available there) and streams the dump back to local stdout.
- *
- * Import, URL lookup and search-replace all operate on the *local* WordPress
- * install at `--path`, which is why {@see validateLocalInstall()} runs first.
+ * Drives the WP-CLI installed on the *destination* host — the server that hosts
+ * the site, where `wp` is available. Every command runs there over SSH
+ * (`ssh <destination> 'cd <path> && wp …'`); nothing needs WP-CLI on the machine
+ * running the tool. The *source* may have no WP-CLI, so it is handled separately
+ * by {@see RemoteWpCli}.
  *
  * Methods return data or throw RuntimeException — no console concerns.
  */
 class WpCli
 {
+    use QuotesShellPaths;
+
+    public function __construct(private readonly Ssh $ssh) {}
+
     /**
-     * Confirm the local path is a configured WordPress install. `wp config path`
-     * resolves wp-config.php without needing the database tables to pre-exist,
-     * so a first pull into a fresh-but-configured install still passes.
+     * Confirm the destination is a configured WordPress install, throwing (with
+     * WP-CLI's own message) when it is not.
      */
-    public function validateLocalInstall(string $localPath): void
+    public function validateInstall(Remote $remote): void
     {
-        $this->run(
-            ['wp', 'config', 'path', '--path='.$localPath],
-            "No WordPress install found at {$localPath} (wp config path failed)."
-        );
+        $this->ssh->run($remote, $this->inDir($remote->path, 'wp config path'));
     }
 
     /**
-     * Export the remote database to a local file by streaming WP-CLI's stdout to
-     * disk: `wp db export - --ssh=<target> > <dumpFile>`.
-     *
-     * Uses the string (shell) form because of the redirect, so both arguments
-     * are escaped explicitly — the string form is not auto-escaped.
+     * Import a SQL dump that already lives on the destination into its database.
      */
-    public function exportRemoteDatabase(string $sshTarget, string $dumpFile): void
+    public function importDatabase(Remote $remote, string $dumpFile): void
     {
-        $command = 'wp db export - --ssh='.escapeshellarg($sshTarget).' > '.escapeshellarg($dumpFile);
-
-        $this->run($command, 'Remote database export failed.');
+        $this->ssh->run($remote, $this->inDir($remote->path, 'wp db import '.escapeshellarg($dumpFile)));
     }
 
     /**
-     * Import a SQL dump into the local database: `wp db import <dumpFile>`.
+     * The siteurl stored in the destination database (the source's URL, just after import).
      */
-    public function importDatabase(string $dumpFile, string $localPath): void
+    public function currentSiteUrl(Remote $remote): string
     {
-        $this->run(['wp', 'db', 'import', $dumpFile, '--path='.$localPath], 'Database import failed.');
+        return $this->ssh->output($remote, $this->inDir($remote->path, 'wp option get siteurl'));
     }
 
     /**
-     * The siteurl stored in the local database (the remote's URL, just after import).
+     * The `$table_prefix` configured in the destination's wp-config.php.
      */
-    public function currentSiteUrl(string $localPath): string
+    public function tablePrefix(Remote $remote): string
     {
-        $result = $this->run(
-            ['wp', 'option', 'get', 'siteurl', '--path='.$localPath],
-            'Could not read the current site URL.'
-        );
-
-        return trim($result->output());
+        return $this->ssh->output($remote, $this->inDir($remote->path, 'wp config get table_prefix'));
     }
 
     /**
-     * Rewrite every occurrence of one URL with another across the database:
-     * `wp search-replace <from> <to>`.
+     * Set `$table_prefix` in the destination's wp-config.php — used to adopt the
+     * source's prefix so WordPress finds the imported tables.
      */
-    public function searchReplace(string $from, string $to, string $localPath): void
+    public function setTablePrefix(Remote $remote, string $prefix): void
     {
-        $this->run(['wp', 'search-replace', $from, $to, '--path='.$localPath], 'Search-replace failed.');
+        $this->ssh->run($remote, $this->inDir($remote->path, 'wp config set table_prefix '.escapeshellarg($prefix)));
     }
 
     /**
-     * Run a wp command and return its result, throwing the trimmed stderr (or a
-     * fallback) on failure.
-     *
-     * @param  string|array<int, string>  $command
+     * Rewrite every occurrence of one URL with another across the destination database.
      */
-    private function run(string|array $command, string $failureMessage): ProcessResult
+    public function searchReplace(Remote $remote, string $from, string $to): void
     {
-        $result = Process::run($command);
-
-        if ($result->failed()) {
-            throw new RuntimeException(trim($result->errorOutput()) ?: $failureMessage);
-        }
-
-        return $result;
+        $this->ssh->run($remote, $this->inDir($remote->path, 'wp search-replace '.escapeshellarg($from).' '.escapeshellarg($to)));
     }
 }

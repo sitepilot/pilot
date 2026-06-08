@@ -2,44 +2,63 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Process;
-use RuntimeException;
+use App\Services\Concerns\QuotesShellPaths;
 
 /**
- * Wraps `rsync` for pulling a remote directory down to a local one.
+ * Builds `rsync` command strings to be executed *on the destination host* (the
+ * one we own, where rsync is installed) via {@see Ssh::run()} with agent
+ * forwarding. The destination talks straight to the source, so bulk data moves
+ * source ↔ destination directly and never through the machine running the tool.
  *
- * Always mirrors with `--delete`: local files absent on the remote are removed,
- * so the local tree becomes an exact copy of the remote. Returns nothing or
- * throws RuntimeException — no console concerns.
+ * These methods only build commands; running them is the caller's job.
  */
 class Rsync
 {
+    use QuotesShellPaths;
+
     /**
-     * Pull the remote directory's contents into the local destination.
+     * Mirror the source directory's contents into a local path on the destination.
+     * Always uses `--delete`, so the destination tree becomes an exact copy — apart
+     * from any `$excludes`, which are neither transferred nor deleted (a leading
+     * slash anchors a pattern to the transfer root, e.g. "/wp-config.php").
      *
-     * @param  string  $source  Remote source ending in '/' (see {@see Site::rsyncSource()}).
-     * @param  string  $localDest  Local destination directory.
-     * @param  int  $port  SSH port, passed via `-e "ssh -p <port>"`.
+     * @param  array<int, string>  $excludes
      */
-    public function pull(string $source, string $localDest, int $port): void
+    public function pullDir(Remote $source, string $destPath, array $excludes = []): string
     {
-        $dest = rtrim($localDest, '/').'/';
+        $excludeArgs = '';
 
-        $command = [
-            'rsync', '-az', '--delete',
-            // Avoid chown/chmod failures pulling to a dev machine whose user
-            // differs from the remote file owner.
-            '--no-perms', '--no-owner', '--no-group',
-            '-e', 'ssh -p '.$port,
-            $source, $dest,
-        ];
-
-        $result = Process::run($command);
-
-        if ($result->failed()) {
-            throw new RuntimeException(
-                trim($result->errorOutput()) ?: 'rsync failed.'
-            );
+        foreach ($excludes as $pattern) {
+            $excludeArgs .= '--exclude='.escapeshellarg($pattern).' ';
         }
+
+        return sprintf(
+            'rsync -az --delete --no-perms --no-owner --no-group %s-e %s %s %s',
+            $excludeArgs,
+            $this->remoteShell($source->port),
+            escapeshellarg($source->rsyncLocation()),
+            $this->shellPath(rtrim($destPath, '/').'/'),
+        );
+    }
+
+    /**
+     * Pull a single file from the source down to a local path on the destination.
+     */
+    public function pullFile(Remote $source, string $sourceFile, string $destFile): string
+    {
+        return sprintf(
+            'rsync -az -e %s %s %s',
+            $this->remoteShell($source->port),
+            escapeshellarg($source->sshHost().':'.$sourceFile),
+            $this->shellPath($destFile),
+        );
+    }
+
+    /**
+     * The `-e` remote-shell argument connecting the destination to the source.
+     */
+    private function remoteShell(int $port): string
+    {
+        return escapeshellarg('ssh -p '.$port.' '.Ssh::OPTIONS);
     }
 }

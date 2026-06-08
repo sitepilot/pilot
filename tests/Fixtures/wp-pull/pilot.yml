@@ -1,8 +1,0 @@
-path: httpdocs
-url: https://example.com
-
-remote:
-  host: 1.2.3.4
-  port: 22
-  user: test
-  path: /dfs/dfs/dfdf

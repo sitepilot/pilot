@@ -1,6 +1,0 @@
-url: example.com
-
-remote:
-  host: 1.2.3.4
-  user: test
-  path: /var/www/html

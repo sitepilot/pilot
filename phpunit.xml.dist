@@ -17,4 +17,9 @@
             <directory>./app</directory>
         </include>
     </source>
+    <php>
+        <!-- Marks the app as running tests so Laravel Prompts use their console
+             fallbacks, letting expectsChoice()/expectsConfirmation() drive them. -->
+        <env name="APP_ENV" value="testing"/>
+    </php>
 </phpunit>
