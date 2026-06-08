@@ -71,6 +71,11 @@ it('pulls a fresh wp-cli onto a source that has none, then exports, syncs, impor
         && str_contains($p->command, 'https://old.example.com')
         && str_contains($p->command, 'https://example.com'));
 
+    // The database is optimized on the destination as the final DB step.
+    Process::assertRan(fn ($p) => is_string($p->command)
+        && str_contains($p->command, "'bob@5.6.7.8'")
+        && str_contains($p->command, 'wp db optimize'));
+
     // Cleanup of the temp dir on the source.
     Process::assertRan(fn ($p) => is_string($p->command)
         && str_contains($p->command, "'alice@1.2.3.4'")
@@ -149,6 +154,7 @@ it('only syncs files when the source is not WordPress', function () {
     Process::assertNotRan(fn ($p) => is_string($p->command) && str_contains($p->command, 'db export'));
     Process::assertNotRan(fn ($p) => is_string($p->command) && str_contains($p->command, 'wp db import'));
     Process::assertNotRan(fn ($p) => is_string($p->command) && str_contains($p->command, 'wp search-replace'));
+    Process::assertNotRan(fn ($p) => is_string($p->command) && str_contains($p->command, 'wp db optimize'));
 });
 
 it('skips search-replace when the url already matches', function () {

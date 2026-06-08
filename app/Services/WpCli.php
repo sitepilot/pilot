@@ -68,4 +68,12 @@ class WpCli
     {
         $this->ssh->run($remote, $this->inDir($remote->path, 'wp search-replace '.escapeshellarg($from).' '.escapeshellarg($to)));
     }
+
+    /**
+     * Optimize the destination database (reclaims space, refreshes index statistics).
+     */
+    public function optimizeDatabase(Remote $remote): void
+    {
+        $this->ssh->run($remote, $this->inDir($remote->path, 'wp db optimize'));
+    }
 }

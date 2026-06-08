@@ -168,6 +168,12 @@ class PullCommand extends Command
 
                     return "Rewrote {$currentUrl} → {$migration->url}";
                 }];
+                // Last DB step: optimize after the import and all row rewrites.
+                $steps[] = ['Optimizing database', function () use ($wp, $destination): string {
+                    $wp->optimizeDatabase($destination);
+
+                    return 'Optimized the database';
+                }];
             }
 
             // Run the steps under a progress bar, with the hint showing the step
