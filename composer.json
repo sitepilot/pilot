@@ -1,5 +1,5 @@
 {
-    "name": "laravel-zero/laravel-zero",
+    "name": "sitepilot/pilot",
     "description": "The Laravel Zero Framework.",
     "keywords": ["framework", "laravel", "laravel zero", "console", "cli"],
     "homepage": "https://laravel-zero.com",
@@ -20,7 +20,8 @@
         "illuminate/http": "^12.17",
         "illuminate/validation": "^12.0",
         "laravel-zero/framework": "^12.0.2",
-        "symfony/yaml": "^8.1"
+        "laravel-zero/phar-updater": "^1.4",
+        "symfony/yaml": "^7.0"
     },
     "require-dev": {
         "laravel/pint": "^1.25.1",
@@ -43,6 +44,9 @@
         "preferred-install": "dist",
         "sort-packages": true,
         "optimize-autoloader": true,
+        "platform": {
+            "php": "8.2"
+        },
         "allow-plugins": {
             "pestphp/pest-plugin": true
         }
