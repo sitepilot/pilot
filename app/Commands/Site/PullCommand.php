@@ -174,7 +174,7 @@ class PullCommand extends Command
             $notes = array_values(array_filter($notes, fn ($note) => $note !== null));
 
             if ($notes !== []) {
-                note(implode(PHP_EOL, array_map(fn (string $note) => '• '.$note, $notes)));
+                note($this->bulletList($notes));
             }
 
             return self::SUCCESS;

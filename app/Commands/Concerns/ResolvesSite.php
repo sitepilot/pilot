@@ -35,7 +35,7 @@ trait ResolvesSite
             $data = $config->load($dir, Migration::RULES);
         } catch (InvalidConfig $e) {
             error('Invalid pilot.yml:');
-            note(implode(PHP_EOL, array_map(fn (string $err) => '• '.$err, $e->errors)));
+            note($this->bulletList($e->errors));
 
             return null;
         } catch (Throwable $e) {
@@ -58,5 +58,15 @@ trait ResolvesSite
         }
 
         return [$key, Migration::fromArray($sites[$key])];
+    }
+
+    /**
+     * Render lines as a bulleted block, ready to hand to {@see note()}.
+     *
+     * @param  array<int, string>  $lines
+     */
+    protected function bulletList(array $lines): string
+    {
+        return implode(PHP_EOL, array_map(fn (string $line) => '• '.$line, $lines));
     }
 }
