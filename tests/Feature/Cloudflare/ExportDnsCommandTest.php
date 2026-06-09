@@ -5,7 +5,8 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
-    config(['services.cloudflare.token' => 'test-token']);
+    $this->config = __DIR__.'/../../Fixtures/cloudflare';
+    $this->invalidConfig = __DIR__.'/../../Fixtures/cloudflare-invalid';
     $this->outputPath = sys_get_temp_dir().'/cf-export-test-'.getmypid().'.zone';
 });
 
@@ -36,6 +37,7 @@ it('exports the zone DNS to a BIND file and prints the path', function () {
 
     $exitCode = Artisan::call('cf:export', [
         'zone' => 'example.com',
+        '--config' => $this->config,
         '--output' => $this->outputPath,
     ]);
 
@@ -52,6 +54,7 @@ it('reports when the zone is not found and writes nothing', function () {
 
     $this->artisan('cf:export', [
         'zone' => 'missing.com',
+        '--config' => $this->config,
         '--output' => $this->outputPath,
     ])
         ->assertExitCode(1)
@@ -60,13 +63,14 @@ it('reports when the zone is not found and writes nothing', function () {
     expect(File::exists($this->outputPath))->toBeFalse();
 });
 
-it('fails clearly when no API token is configured', function () {
-    config(['services.cloudflare.token' => null]);
-
+it('fails clearly when the cloudflare config is missing the token', function () {
     $this->artisan('cf:export', [
         'zone' => 'example.com',
+        '--config' => $this->invalidConfig,
         '--output' => $this->outputPath,
     ])
         ->assertExitCode(1)
-        ->expectsOutputToContain('Cloudflare API token is not configured');
+        ->expectsOutputToContain('Invalid pilot.yml');
+
+    expect(File::exists($this->outputPath))->toBeFalse();
 });

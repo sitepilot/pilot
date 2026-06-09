@@ -2,10 +2,8 @@
 
 namespace App\Commands\Concerns;
 
-use App\Exceptions\InvalidConfig;
 use App\Services\Config;
 use App\Services\Migration;
-use Throwable;
 
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\note;
@@ -17,6 +15,8 @@ use function Laravel\Prompts\select;
  */
 trait ResolvesSite
 {
+    use LoadsConfig;
+
     /**
      * Load pilot.yml and resolve the requested site to its key and Migration.
      *
@@ -29,18 +29,9 @@ trait ResolvesSite
      */
     protected function resolveSite(Config $config, string $verb): ?array
     {
-        $dir = $this->option('config') ?: getcwd();
+        $data = $this->loadConfig($config, Migration::RULES);
 
-        try {
-            $data = $config->load($dir, Migration::RULES);
-        } catch (InvalidConfig $e) {
-            error('Invalid pilot.yml:');
-            note($this->bulletList($e->errors));
-
-            return null;
-        } catch (Throwable $e) {
-            error($e->getMessage());
-
+        if ($data === null) {
             return null;
         }
 
@@ -58,15 +49,5 @@ trait ResolvesSite
         }
 
         return [$key, Migration::fromArray($sites[$key])];
-    }
-
-    /**
-     * Render lines as a bulleted block, ready to hand to {@see note()}.
-     *
-     * @param  array<int, string>  $lines
-     */
-    protected function bulletList(array $lines): string
-    {
-        return implode(PHP_EOL, array_map(fn (string $line) => '• '.$line, $lines));
     }
 }

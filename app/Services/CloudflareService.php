@@ -24,6 +24,19 @@ class CloudflareService
      */
     private const PER_PAGE = 50;
 
+    /**
+     * Validation rules for the `cloudflare:` section of pilot.yml. Pass these to
+     * {@see Config::load()} from the cf:* commands. `default_zone` is optional —
+     * the command falls back to the built-in default when it is omitted.
+     *
+     * @var array<string, array<int, string>>
+     */
+    public const RULES = [
+        'cloudflare' => ['required', 'array'],
+        'cloudflare.token' => ['required', 'string'],
+        'cloudflare.default_zone' => ['nullable', 'string'],
+    ];
+
     private readonly ?string $token;
 
     public function __construct(?string $token = null)
@@ -146,11 +159,13 @@ class CloudflareService
     {
         if (empty($this->token)) {
             throw new RuntimeException(
-                'Cloudflare API token is not configured. Set CLOUDFLARE_API_TOKEN in your .env file.'
+                'Cloudflare API token is not configured. Set cloudflare.token in your pilot.yml.'
             );
         }
 
         return Http::withToken($this->token)
+            ->timeout(15)
+            ->connectTimeout(5)
             ->baseUrl(self::BASE_URL)
             ->acceptJson();
     }

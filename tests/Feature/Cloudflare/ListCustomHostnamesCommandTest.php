@@ -4,7 +4,8 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
-    config(['services.cloudflare.token' => 'test-token']);
+    $this->config = __DIR__.'/../../Fixtures/cloudflare';
+    $this->invalidConfig = __DIR__.'/../../Fixtures/cloudflare-invalid';
 });
 
 function fakeCloudflare(array $zones, array $hostnames): void
@@ -34,7 +35,7 @@ it('lists custom hostnames with their origin server', function () {
         ],
     );
 
-    $exitCode = Artisan::call('cf:hostname', ['--zone' => 'example.com']);
+    $exitCode = Artisan::call('cf:hostname', ['--zone' => 'example.com', '--config' => $this->config]);
     $output = Artisan::output();
 
     expect($exitCode)->toBe(0)
@@ -44,8 +45,6 @@ it('lists custom hostnames with their origin server', function () {
 });
 
 it('falls back to the configured default zone when no zone is given', function () {
-    config(['services.cloudflare.default_zone' => 'sitepilot.cloud']);
-
     fakeCloudflare(
         zones: [['id' => 'zone-123', 'name' => 'sitepilot.cloud']],
         hostnames: [
@@ -57,7 +56,7 @@ it('falls back to the configured default zone when no zone is given', function (
         ],
     );
 
-    $exitCode = Artisan::call('cf:hostname');
+    $exitCode = Artisan::call('cf:hostname', ['--config' => $this->config]);
 
     expect($exitCode)->toBe(0)
         ->and(Artisan::output())->toContain('shop.customer.com');
@@ -73,7 +72,7 @@ it('shows a placeholder when a hostname has no origin server', function () {
         ],
     );
 
-    $exitCode = Artisan::call('cf:hostname', ['--zone' => 'example.com']);
+    $exitCode = Artisan::call('cf:hostname', ['--zone' => 'example.com', '--config' => $this->config]);
     $output = Artisan::output();
 
     expect($exitCode)->toBe(0)
@@ -97,6 +96,7 @@ it('filters to the hostname and its www variant when a hostname is given', funct
     $exitCode = Artisan::call('cf:hostname', [
         'hostname' => 'customer.com',
         '--zone' => 'example.com',
+        '--config' => $this->config,
     ]);
 
     expect($exitCode)->toBe(0)
@@ -116,6 +116,7 @@ it('derives the bare domain when the hostname already has a www prefix', functio
     Artisan::call('cf:hostname', [
         'hostname' => 'www.customer.com',
         '--zone' => 'example.com',
+        '--config' => $this->config,
     ]);
 
     Http::assertSent(fn ($request) => str_contains($request->url(), 'hostname=customer.com'));
@@ -131,6 +132,7 @@ it('reports when no hostname matches the filter', function () {
     $this->artisan('cf:hostname', [
         'hostname' => 'missing.customer.com',
         '--zone' => 'example.com',
+        '--config' => $this->config,
     ])
         ->assertExitCode(0)
         ->expectsOutputToContain("No custom hostname matching 'missing.customer.com' found");
@@ -139,7 +141,7 @@ it('reports when no hostname matches the filter', function () {
 it('reports when the zone is not found', function () {
     fakeCloudflare(zones: [], hostnames: []);
 
-    $this->artisan('cf:hostname', ['--zone' => 'missing.com'])
+    $this->artisan('cf:hostname', ['--zone' => 'missing.com', '--config' => $this->config])
         ->assertExitCode(1)
         ->expectsOutputToContain("Zone 'missing.com' not found.");
 });
@@ -150,15 +152,13 @@ it('reports when no custom hostnames are configured', function () {
         hostnames: [],
     );
 
-    $this->artisan('cf:hostname', ['--zone' => 'example.com'])
+    $this->artisan('cf:hostname', ['--zone' => 'example.com', '--config' => $this->config])
         ->assertExitCode(0)
         ->expectsOutputToContain('No custom hostnames configured');
 });
 
-it('fails clearly when no API token is configured', function () {
-    config(['services.cloudflare.token' => null]);
-
-    $this->artisan('cf:hostname', ['--zone' => 'example.com'])
+it('fails clearly when the cloudflare config is missing the token', function () {
+    $this->artisan('cf:hostname', ['--zone' => 'example.com', '--config' => $this->invalidConfig])
         ->assertExitCode(1)
-        ->expectsOutputToContain('Cloudflare API token is not configured');
+        ->expectsOutputToContain('Invalid pilot.yml');
 });

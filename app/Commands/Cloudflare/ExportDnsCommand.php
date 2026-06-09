@@ -2,7 +2,9 @@
 
 namespace App\Commands\Cloudflare;
 
+use App\Commands\Concerns\LoadsConfig;
 use App\Services\CloudflareService;
+use App\Services\Config;
 use Illuminate\Support\Facades\File;
 use LaravelZero\Framework\Commands\Command;
 use Throwable;
@@ -12,6 +14,8 @@ use function Laravel\Prompts\info;
 
 class ExportDnsCommand extends Command
 {
+    use LoadsConfig;
+
     /**
      * The signature of the command.
      *
@@ -19,6 +23,7 @@ class ExportDnsCommand extends Command
      */
     protected $signature = 'cf:export
         {zone : The zone name, e.g. example.com}
+        {--config= : Directory containing pilot.yml (defaults to the current working directory)}
         {--output= : File path to write to (defaults to <zone>.zone in the current directory)}';
 
     /**
@@ -31,8 +36,16 @@ class ExportDnsCommand extends Command
     /**
      * Execute the console command.
      */
-    public function handle(CloudflareService $cloudflare): int
+    public function handle(Config $config): int
     {
+        $data = $this->loadConfig($config, CloudflareService::RULES);
+
+        if ($data === null) {
+            return self::FAILURE;
+        }
+
+        $cloudflare = new CloudflareService($data['cloudflare']['token']);
+
         $zoneName = $this->argument('zone');
         $path = $this->option('output') ?: "{$zoneName}.zone";
 

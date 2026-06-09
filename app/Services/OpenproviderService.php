@@ -22,6 +22,20 @@ class OpenproviderService
 {
     private const BASE_URL = 'https://api.openprovider.eu/v1beta';
 
+    /**
+     * Validation rules for the `openprovider:` section of pilot.yml. Pass these
+     * to {@see Config::load()} from the op:* commands. `default_ns_group` is
+     * optional — the command falls back to the built-in default when omitted.
+     *
+     * @var array<string, array<int, string>>
+     */
+    public const RULES = [
+        'openprovider' => ['required', 'array'],
+        'openprovider.username' => ['required', 'string'],
+        'openprovider.password' => ['required', 'string'],
+        'openprovider.default_ns_group' => ['nullable', 'string'],
+    ];
+
     private readonly ?string $username;
 
     private readonly ?string $password;
@@ -109,6 +123,8 @@ class OpenproviderService
     private function client(): PendingRequest
     {
         return Http::withToken($this->authenticate())
+            ->timeout(15)
+            ->connectTimeout(5)
             ->baseUrl(self::BASE_URL)
             ->acceptJson();
     }
@@ -124,11 +140,13 @@ class OpenproviderService
 
         if (empty($this->username) || empty($this->password)) {
             throw new RuntimeException(
-                'Openprovider credentials are not configured. Set OPENPROVIDER_USERNAME and OPENPROVIDER_PASSWORD in your .env file.'
+                'Openprovider credentials are not configured. Set openprovider.username and openprovider.password in your pilot.yml.'
             );
         }
 
         $response = Http::baseUrl(self::BASE_URL)
+            ->timeout(15)
+            ->connectTimeout(5)
             ->acceptJson()
             ->post('/auth/login', [
                 'username' => $this->username,

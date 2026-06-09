@@ -2,6 +2,8 @@
 
 namespace App\Commands\Openprovider;
 
+use App\Commands\Concerns\LoadsConfig;
+use App\Services\Config;
 use App\Services\OpenproviderService;
 use LaravelZero\Framework\Commands\Command;
 use Throwable;
@@ -12,6 +14,8 @@ use function Laravel\Prompts\info;
 
 class ResetNameserversCommand extends Command
 {
+    use LoadsConfig;
+
     /**
      * The signature of the command.
      *
@@ -19,6 +23,7 @@ class ResetNameserversCommand extends Command
      */
     protected $signature = 'op:reset-ns
         {domain : The domain to reset, e.g. example.com}
+        {--config= : Directory containing pilot.yml (defaults to the current working directory)}
         {--group= : Nameserver group to apply (defaults to the configured group)}
         {--force : Skip the confirmation prompt}';
 
@@ -32,10 +37,18 @@ class ResetNameserversCommand extends Command
     /**
      * Execute the console command.
      */
-    public function handle(OpenproviderService $openprovider): int
+    public function handle(Config $config): int
     {
+        $data = $this->loadConfig($config, OpenproviderService::RULES);
+
+        if ($data === null) {
+            return self::FAILURE;
+        }
+
+        $openprovider = new OpenproviderService($data['openprovider']['username'], $data['openprovider']['password']);
+
         $domainName = $this->argument('domain');
-        $group = $this->option('group') ?: config('services.openprovider.default_ns_group');
+        $group = $this->option('group') ?: ($data['openprovider']['default_ns_group'] ?? config('services.openprovider.default_ns_group'));
 
         try {
             $domain = $openprovider->findDomainByName($domainName);

@@ -1,0 +1,4 @@
+openprovider:
+  username: reseller
+  password: secret
+  default_ns_group: sitepilot-net

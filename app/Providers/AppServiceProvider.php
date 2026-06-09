@@ -2,9 +2,7 @@
 
 namespace App\Providers;
 
-use App\Services\CloudflareService;
 use App\Services\Config;
-use App\Services\OpenproviderService;
 use App\Services\RemoteWpCli;
 use App\Services\Rsync;
 use App\Services\Ssh;
@@ -26,8 +24,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(CloudflareService::class, fn () => new CloudflareService);
-        $this->app->singleton(OpenproviderService::class, fn () => new OpenproviderService);
         $this->app->singleton(Config::class, fn () => new Config);
         $this->app->singleton(Rsync::class, fn () => new Rsync);
         $this->app->singleton(Ssh::class, fn () => new Ssh);

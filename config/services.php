@@ -7,19 +7,21 @@ return [
     | Third Party Services
     |--------------------------------------------------------------------------
     |
-    | Credentials for the external services the toolkit talks to.
+    | Defaults for the external services the toolkit talks to. Credentials live
+    | in the project's pilot.yml (loaded per command); the literals below are
+    | only the fallback applied when pilot.yml omits an optional default.
     |
     */
 
     'cloudflare' => [
-        'token' => env('CLOUDFLARE_API_TOKEN'),
-        'default_zone' => env('CLOUDFLARE_DEFAULT_ZONE', 'sitepilot.cloud'),
+        'token' => null,
+        'default_zone' => 'sitepilot.cloud',
     ],
 
     'openprovider' => [
-        'username' => env('OPENPROVIDER_USERNAME'),
-        'password' => env('OPENPROVIDER_PASSWORD'),
-        'default_ns_group' => env('OPENPROVIDER_DEFAULT_NS_GROUP', 'sitepilot-net'),
+        'username' => null,
+        'password' => null,
+        'default_ns_group' => 'sitepilot-net',
     ],
 
 ];

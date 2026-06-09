@@ -3,11 +3,8 @@
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
-    config([
-        'services.openprovider.username' => 'reseller',
-        'services.openprovider.password' => 'secret',
-        'services.openprovider.default_ns_group' => 'sitepilot-net',
-    ]);
+    $this->config = __DIR__.'/../../Fixtures/openprovider';
+    $this->invalidConfig = __DIR__.'/../../Fixtures/openprovider-invalid';
 });
 
 function fakeOpenprovider(array $results): void
@@ -35,6 +32,7 @@ it('resets the domain to the given group with --force', function () {
 
     $this->artisan('op:reset-ns', [
         'domain' => 'example.com',
+        '--config' => $this->config,
         '--group' => 'custom-group',
         '--force' => true,
     ])
@@ -51,6 +49,7 @@ it('falls back to the configured default group when --group is omitted', functio
 
     $this->artisan('op:reset-ns', [
         'domain' => 'example.com',
+        '--config' => $this->config,
         '--force' => true,
     ])
         ->assertExitCode(0)
@@ -62,7 +61,7 @@ it('falls back to the configured default group when --group is omitted', functio
 it('asks for confirmation and aborts without a PUT when declined', function () {
     fakeOpenprovider(exampleDomain());
 
-    $this->artisan('op:reset-ns', ['domain' => 'example.com'])
+    $this->artisan('op:reset-ns', ['domain' => 'example.com', '--config' => $this->config])
         ->expectsConfirmation("Reset example.com to nameserver group 'sitepilot-net'?", 'no')
         ->expectsOutputToContain('Aborted.')
         ->assertExitCode(0);
@@ -75,19 +74,19 @@ it('fails when the domain is not found', function () {
 
     $this->artisan('op:reset-ns', [
         'domain' => 'missing.com',
+        '--config' => $this->config,
         '--force' => true,
     ])
         ->assertExitCode(1)
         ->expectsOutputToContain("Domain 'missing.com' not found at Openprovider.");
 });
 
-it('fails clearly when credentials are not configured', function () {
-    config(['services.openprovider.username' => null]);
-
+it('fails clearly when the openprovider config is missing credentials', function () {
     $this->artisan('op:reset-ns', [
         'domain' => 'example.com',
+        '--config' => $this->invalidConfig,
         '--force' => true,
     ])
         ->assertExitCode(1)
-        ->expectsOutputToContain('Openprovider credentials are not configured');
+        ->expectsOutputToContain('Invalid pilot.yml');
 });

@@ -2,7 +2,9 @@
 
 namespace App\Commands\Cloudflare;
 
+use App\Commands\Concerns\LoadsConfig;
 use App\Services\CloudflareService;
+use App\Services\Config;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use LaravelZero\Framework\Commands\Command;
@@ -14,6 +16,8 @@ use function Laravel\Prompts\table;
 
 class ListCustomHostnamesCommand extends Command
 {
+    use LoadsConfig;
+
     /**
      * The signature of the command.
      *
@@ -21,6 +25,7 @@ class ListCustomHostnamesCommand extends Command
      */
     protected $signature = 'cf:hostname
         {hostname? : Filter to a specific custom hostname}
+        {--config= : Directory containing pilot.yml (defaults to the current working directory)}
         {--zone= : The zone name, e.g. example.com (defaults to the configured zone)}';
 
     /**
@@ -33,9 +38,17 @@ class ListCustomHostnamesCommand extends Command
     /**
      * Execute the console command.
      */
-    public function handle(CloudflareService $cloudflare): int
+    public function handle(Config $config): int
     {
-        $zoneName = $this->option('zone') ?: config('services.cloudflare.default_zone');
+        $data = $this->loadConfig($config, CloudflareService::RULES);
+
+        if ($data === null) {
+            return self::FAILURE;
+        }
+
+        $cloudflare = new CloudflareService($data['cloudflare']['token']);
+
+        $zoneName = $this->option('zone') ?: ($data['cloudflare']['default_zone'] ?? config('services.cloudflare.default_zone'));
         $filter = $this->argument('hostname');
 
         try {

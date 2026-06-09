@@ -1,0 +1,33 @@
+---
+# Pilot project configuration. Copy this file to pilot.yml and fill in your
+# values. pilot.yml is gitignored because it holds credentials — keep it out of
+# version control.
+#
+# Each command validates only the section it needs, so you only have to
+# configure the services you actually use.
+
+# Cloudflare API credentials, used by the cf:* commands.
+# The token needs Zone:Read and SSL and Certificates:Read on the relevant zones.
+cloudflare:
+  token: cf-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  default_zone: sitepilot.cloud   # optional; used by cf:hostname when --zone is omitted
+
+# Openprovider API credentials, used by the op:* commands.
+openprovider:
+  username: your-reseller-username
+  password: your-reseller-password
+  default_ns_group: sitepilot-net  # optional; used by op:reset-ns when --group is omitted
+
+# Sites managed by the site:* commands (site:pull, site:ssh). Each entry is keyed
+# by a short name; the entry itself describes the destination the site lives on,
+# with a nested `source:` block for the host it is pulled from.
+sites:
+  example:
+    url: https://example.com
+    host: web123.sitepilot.net
+    user: app1234
+    path: ~/httpdocs
+    source:
+      host: 1.2.3.4
+      user: root
+      path: /opt/sitepilot/users/example/sites/example/public

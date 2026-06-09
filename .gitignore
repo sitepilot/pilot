@@ -5,4 +5,5 @@
 /.vagrant
 .phpunit.result.cache
 .env
+/pilot.yml
 *.zone

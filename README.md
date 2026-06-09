@@ -38,16 +38,48 @@ pilot self-update
 
 ## Configuration
 
-Cloudflare and Openprovider commands read their credentials from environment variables.
-Set them in your shell or in a `.env` file next to where you run `pilot`:
+All configuration lives in a `pilot.yml` file. Commands read it from the directory
+you run `pilot` in, or from the directory passed with `--config`. Copy the bundled
+template to get started:
 
-| Variable | Description | Default |
+```bash
+cp pilot.example.yml pilot.yml
+```
+
+`pilot.yml` holds credentials, so it is gitignored — keep it out of version control.
+Each command validates only the section it needs, so you only have to fill in the
+services you actually use.
+
+```yaml
+cloudflare:
+  token: cf-xxxxxxxx          # required for cf:* commands
+  default_zone: sitepilot.cloud   # optional; used by cf:hostname when --zone is omitted
+
+openprovider:
+  username: your-username     # required for op:* commands
+  password: your-password
+  default_ns_group: sitepilot-net # optional; used by op:reset-ns when --group is omitted
+
+sites:                        # used by the site:* commands
+  example:
+    url: https://example.com
+    host: web123.sitepilot.net
+    user: app1234
+    path: ~/httpdocs
+    source:
+      host: 1.2.3.4
+      user: root
+      path: /opt/sitepilot/users/example/sites/example/public
+```
+
+| Key | Description | Default |
 | --- | --- | --- |
-| `CLOUDFLARE_API_TOKEN` | Cloudflare API token | — |
-| `CLOUDFLARE_DEFAULT_ZONE` | Zone used when `--zone` is omitted | `sitepilot.cloud` |
-| `OPENPROVIDER_USERNAME` | Openprovider account username | — |
-| `OPENPROVIDER_PASSWORD` | Openprovider account password | — |
-| `OPENPROVIDER_DEFAULT_NS_GROUP` | Nameserver group used when `--group` is omitted | `sitepilot-net` |
+| `cloudflare.token` | Cloudflare API token | — |
+| `cloudflare.default_zone` | Zone used when `--zone` is omitted | `sitepilot.cloud` |
+| `openprovider.username` | Openprovider account username | — |
+| `openprovider.password` | Openprovider account password | — |
+| `openprovider.default_ns_group` | Nameserver group used when `--group` is omitted | `sitepilot-net` |
+| `sites` | Sites managed by `site:pull` / `site:ssh` (see template) | — |
 
 ## Commands
 
