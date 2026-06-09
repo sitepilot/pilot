@@ -4,6 +4,7 @@ namespace App\Commands\Site;
 
 use App\Commands\Concerns\ResolvesSite;
 use App\Services\Config;
+use App\Services\RemoteFilesystem;
 use App\Services\RemoteWpCli;
 use App\Services\Rsync;
 use App\Services\Ssh;
@@ -29,7 +30,7 @@ class MigrateCommand extends Command
 
     protected $description = 'Migrate a site (files + WordPress database) from its source host to its destination';
 
-    public function handle(Config $config, WpCli $wp, RemoteWpCli $sourceWp, Rsync $rsync, Ssh $ssh): int
+    public function handle(Config $config, WpCli $wp, RemoteWpCli $sourceWp, Rsync $rsync, RemoteFilesystem $fs, Ssh $ssh): int
     {
         $resolved = $this->resolveSite($config, 'migrate');
 
@@ -108,6 +109,17 @@ class MigrateCommand extends Command
                 return $isWordPress
                     ? 'Synced files (kept the destination wp-config.php)'
                     : 'Synced files';
+            }];
+
+            // The sync runs rsync --no-perms, so files land with the destination's
+            // default/umask permissions rather than the source's — and any
+            // pre-existing files keep whatever they had. Normalize to the web
+            // standard (directories 755, files 644). Idempotent, and applies whether
+            // or not the source is WordPress.
+            $steps[] = ['Fixing permissions', function () use ($ssh, $fs, $destination): string {
+                $ssh->run($destination, $fs->normalizePermissions($destination->path));
+
+                return 'Normalized permissions (directories 755, files 644)';
             }];
 
             if ($isWordPress) {

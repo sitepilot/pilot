@@ -149,12 +149,39 @@ it('only syncs files when the source is not WordPress', function () {
         && str_contains($p->command, 'ssh -A -p 2222')
         && str_contains($p->command, 'rsync -az --delete'));
 
+    // Permissions are still normalized for a files-only sync.
+    Process::assertRan(fn ($p) => is_string($p->command)
+        && str_contains($p->command, "'bob@5.6.7.8'")
+        && str_contains($p->command, '-type d -exec chmod 755 {} +')
+        && str_contains($p->command, '-type f -exec chmod 644 {} +'));
+
     // Files-only: no WP-CLI provisioning/download and no database work.
     Process::assertNotRan(fn ($p) => is_string($p->command) && str_contains($p->command, 'wp-cli.phar'));
     Process::assertNotRan(fn ($p) => is_string($p->command) && str_contains($p->command, 'db export'));
     Process::assertNotRan(fn ($p) => is_string($p->command) && str_contains($p->command, 'wp db import'));
     Process::assertNotRan(fn ($p) => is_string($p->command) && str_contains($p->command, 'wp search-replace'));
     Process::assertNotRan(fn ($p) => is_string($p->command) && str_contains($p->command, 'wp db optimize'));
+});
+
+it('normalizes destination file and directory permissions after syncing', function () {
+    Process::fake([
+        '*command -v wp*' => Process::result(errorOutput: "wp: not found\n", exitCode: 1),
+        '*wp option get siteurl*' => Process::result(output: "https://example.com\n"),
+        '*' => Process::result(output: ''),
+    ]);
+
+    $this->artisan('site:migrate', ['site' => 'example', '--config' => $this->valid, '--force' => true])
+        ->assertExitCode(0)
+        ->expectsOutputToContain('Normalized permissions (directories 755, files 644)');
+
+    // chmod runs on the destination over its own path. The exact command string
+    // (and its tilde handling) is unit-tested in RemoteFilesystemTest; here we
+    // only confirm the step is wired into the pipeline and targets the destination.
+    Process::assertRan(fn ($p) => is_string($p->command)
+        && str_contains($p->command, "'bob@5.6.7.8'")
+        && str_contains($p->command, '/var/www/example')
+        && str_contains($p->command, '-type d -exec chmod 755 {} +')
+        && str_contains($p->command, '-type f -exec chmod 644 {} +'));
 });
 
 it('skips search-replace when the url already matches', function () {
