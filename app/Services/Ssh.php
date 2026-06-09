@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Contracts\Process\ProcessResult;
 use Illuminate\Support\Facades\Process;
 use RuntimeException;
 use Symfony\Component\Process\Process as SymfonyProcess;
@@ -60,9 +61,7 @@ class Ssh
     {
         $result = Process::run($this->wrap($remote, $command, $forwardAgent));
 
-        if ($result->failed()) {
-            throw new RuntimeException(trim($result->errorOutput()) ?: "SSH command failed on {$remote->sshHost()}.");
-        }
+        $this->throwIfFailed($remote, $result);
     }
 
     /**
@@ -72,9 +71,7 @@ class Ssh
     {
         $result = Process::run($this->wrap($remote, $command));
 
-        if ($result->failed()) {
-            throw new RuntimeException(trim($result->errorOutput()) ?: "SSH command failed on {$remote->sshHost()}.");
-        }
+        $this->throwIfFailed($remote, $result);
 
         return trim($result->output());
     }
@@ -92,6 +89,17 @@ class Ssh
         }
 
         return trim($result->errorOutput()) ?: 'command failed';
+    }
+
+    /**
+     * Throw the command's trimmed stderr (or a host-named fallback) when it exited
+     * non-zero, so {@see run()} and {@see output()} surface failures identically.
+     */
+    private function throwIfFailed(Remote $remote, ProcessResult $result): void
+    {
+        if ($result->failed()) {
+            throw new RuntimeException(trim($result->errorOutput()) ?: "SSH command failed on {$remote->sshHost()}.");
+        }
     }
 
     private function wrap(Remote $remote, string $command, bool $forwardAgent = false): string

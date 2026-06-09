@@ -4,8 +4,8 @@ namespace App\Services;
 
 /**
  * Immutable connection info for one host (a migration's source or destination),
- * as read from a `sites.*.source` / `sites.*.destination` block in pilot.yml.
- * Holds the derived strings the wp/rsync/ssh wrappers need.
+ * as read from a `sites.*` entry (the destination) or its nested `sites.*.source`
+ * block in pilot.yml. Holds the derived strings the wp/rsync/ssh wrappers need.
  */
 final readonly class Remote
 {
