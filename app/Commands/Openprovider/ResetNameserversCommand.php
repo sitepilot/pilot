@@ -6,6 +6,10 @@ use App\Services\OpenproviderService;
 use LaravelZero\Framework\Commands\Command;
 use Throwable;
 
+use function Laravel\Prompts\confirm;
+use function Laravel\Prompts\error;
+use function Laravel\Prompts\info;
+
 class ResetNameserversCommand extends Command
 {
     /**
@@ -37,26 +41,26 @@ class ResetNameserversCommand extends Command
             $domain = $openprovider->findDomainByName($domainName);
 
             if ($domain === null) {
-                $this->error("Domain '{$domainName}' not found at Openprovider.");
+                error("Domain '{$domainName}' not found at Openprovider.");
 
                 return self::FAILURE;
             }
 
             if (! $this->option('force')
-                && ! $this->confirm("Reset {$domainName} to nameserver group '{$group}'?")) {
-                $this->info('Aborted.');
+                && ! confirm("Reset {$domainName} to nameserver group '{$group}'?", default: false)) {
+                info('Aborted.');
 
                 return self::SUCCESS;
             }
 
             $openprovider->setNameserverGroup($domain['id'], $group);
         } catch (Throwable $e) {
-            $this->error($e->getMessage());
+            error($e->getMessage());
 
             return self::FAILURE;
         }
 
-        $this->info("Reset {$domainName} to nameserver group '{$group}'.");
+        info("Reset {$domainName} to nameserver group '{$group}'.");
 
         return self::SUCCESS;
     }

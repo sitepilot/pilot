@@ -7,6 +7,8 @@ use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Throwable;
 
+use function Laravel\Prompts\error;
+use function Laravel\Prompts\info;
 use function Laravel\Prompts\spin;
 use function Laravel\Prompts\table;
 
@@ -55,7 +57,7 @@ class ViewCommand extends Command
         try {
             $baseline = $this->lookupAll($lookup, $domain, $resolver);
         } catch (Throwable $e) {
-            $this->error($e->getMessage());
+            error($e->getMessage());
 
             return self::FAILURE;
         }
@@ -107,7 +109,7 @@ class ViewCommand extends Command
             return spin($loop, $message);
         }
 
-        $this->info($message);
+        info($message);
 
         return $loop();
     }
@@ -158,7 +160,7 @@ class ViewCommand extends Command
         }
 
         $success
-            ? $this->info($title)
+            ? info($title)
             : $this->line($this->supportsLiveOutput() ? " <options=bold>{$title}</>" : "{$title}:");
 
         if ($this->supportsLiveOutput()) {

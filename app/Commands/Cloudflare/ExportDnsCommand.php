@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\File;
 use LaravelZero\Framework\Commands\Command;
 use Throwable;
 
+use function Laravel\Prompts\error;
+use function Laravel\Prompts\info;
+
 class ExportDnsCommand extends Command
 {
     /**
@@ -37,25 +40,25 @@ class ExportDnsCommand extends Command
             $zone = $cloudflare->getZoneByName($zoneName);
 
             if ($zone === null) {
-                $this->error("Zone '{$zoneName}' not found.");
+                error("Zone '{$zoneName}' not found.");
 
                 return self::FAILURE;
             }
 
             $bind = $cloudflare->exportDnsRecords($zone['id']);
         } catch (Throwable $e) {
-            $this->error($e->getMessage());
+            error($e->getMessage());
 
             return self::FAILURE;
         }
 
         if (File::put($path, $bind) === false) {
-            $this->error("Could not write to {$path}.");
+            error("Could not write to {$path}.");
 
             return self::FAILURE;
         }
 
-        $this->info("Exported DNS for '{$zoneName}' to {$path}.");
+        info("Exported DNS for '{$zoneName}' to {$path}.");
 
         return self::SUCCESS;
     }

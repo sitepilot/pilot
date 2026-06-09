@@ -8,6 +8,10 @@ use Illuminate\Support\Str;
 use LaravelZero\Framework\Commands\Command;
 use Throwable;
 
+use function Laravel\Prompts\error;
+use function Laravel\Prompts\info;
+use function Laravel\Prompts\table;
+
 class ListCustomHostnamesCommand extends Command
 {
     /**
@@ -38,7 +42,7 @@ class ListCustomHostnamesCommand extends Command
             $zone = $cloudflare->getZoneByName($zoneName);
 
             if ($zone === null) {
-                $this->error("Zone '{$zoneName}' not found.");
+                error("Zone '{$zoneName}' not found.");
 
                 return self::FAILURE;
             }
@@ -46,13 +50,13 @@ class ListCustomHostnamesCommand extends Command
             $names = $filter !== null ? $this->hostnameVariants($filter) : [];
             $hostnames = $cloudflare->getCustomHostnames($zone['id'], $names);
         } catch (Throwable $e) {
-            $this->error($e->getMessage());
+            error($e->getMessage());
 
             return self::FAILURE;
         }
 
         if ($hostnames === []) {
-            $this->info($filter !== null
+            info($filter !== null
                 ? "No custom hostname matching '{$filter}' found for '{$zoneName}'."
                 : "No custom hostnames configured for '{$zoneName}'.");
 
@@ -65,7 +69,7 @@ class ListCustomHostnamesCommand extends Command
             $hostname['custom_origin_server'] ?? '—',
         ], $hostnames);
 
-        $this->table(['Hostname', 'SSL Status', 'Origin Server'], $rows);
+        table(['Hostname', 'SSL Status', 'Origin Server'], $rows);
 
         return self::SUCCESS;
     }
