@@ -18,9 +18,9 @@ openprovider:
   password: your-reseller-password
   default_ns_group: sitepilot-net  # optional; used by op:reset-ns when --group is omitted
 
-# Sites managed by the site:* commands (site:pull, site:ssh). Each entry is keyed
+# Sites managed by the site:* commands (site:migrate, site:ssh). Each entry is keyed
 # by a short name; the entry itself describes the destination the site lives on,
-# with a nested `source:` block for the host it is pulled from.
+# with a nested `source:` block for the host it is migrated from.
 sites:
   example:
     url: https://example.com

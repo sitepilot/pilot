@@ -23,7 +23,7 @@ trait ResolvesSite
      * On failure (invalid config, or an unknown site key) the reason is printed
      * and null is returned; the caller should then return self::FAILURE. $verb
      * fills the selection prompt shown when the site argument is omitted, e.g.
-     * "pull" or "SSH into".
+     * "migrate" or "SSH into".
      *
      * @return array{string, Migration}|null
      */

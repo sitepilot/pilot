@@ -16,7 +16,7 @@ use Symfony\Component\Yaml\Yaml;
  * Loads and validates the project's pilot.yml.
  *
  * The validation rules are supplied by the caller, so each command can validate
- * the subset of pilot.yml it needs (e.g. {@see Migration::RULES} for site:pull).
+ * the subset of pilot.yml it needs (e.g. {@see Migration::RULES} for site:migrate).
  * Returns the parsed, validated array or throws RuntimeException — no console
  * concerns.
  *
@@ -33,7 +33,7 @@ class Config
     {
         // Point the loader at Illuminate's bundled lang dir so every rule gets a
         // real default message. Resolve it absolutely (off the Translator class
-        // location), since site:pull runs from the user's site dir, not here.
+        // location), since site:migrate runs from the user's site dir, not here.
         $langPath = dirname((new ReflectionClass(Translator::class))->getFileName()).'/lang';
 
         $this->validation = new ValidationFactory(new Translator(new FileLoader(new Filesystem, $langPath), 'en'));

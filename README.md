@@ -79,7 +79,7 @@ sites:                        # used by the site:* commands
 | `openprovider.username` | Openprovider account username | — |
 | `openprovider.password` | Openprovider account password | — |
 | `openprovider.default_ns_group` | Nameserver group used when `--group` is omitted | `sitepilot-net` |
-| `sites` | Sites managed by `site:pull` / `site:ssh` (see template) | — |
+| `sites` | Sites managed by `site:migrate` / `site:ssh` (see template) | — |
 
 ## Commands
 

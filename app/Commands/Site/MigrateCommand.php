@@ -18,20 +18,20 @@ use function Laravel\Prompts\note;
 use function Laravel\Prompts\progress;
 use function Laravel\Prompts\warning;
 
-class PullCommand extends Command
+class MigrateCommand extends Command
 {
     use ResolvesSite;
 
-    protected $signature = 'site:pull
+    protected $signature = 'site:migrate
         {site? : The site key from pilot.yml\'s sites map; prompts if omitted}
         {--config= : Directory containing pilot.yml (defaults to the current working directory)}
         {--force : Skip the confirmation prompt}';
 
-    protected $description = 'Pull a site\'s files and database from its source host to its destination';
+    protected $description = 'Migrate a site (files + WordPress database) from its source host to its destination';
 
     public function handle(Config $config, WpCli $wp, RemoteWpCli $sourceWp, Rsync $rsync, Ssh $ssh): int
     {
-        $resolved = $this->resolveSite($config, 'pull');
+        $resolved = $this->resolveSite($config, 'migrate');
 
         if ($resolved === null) {
             return self::FAILURE;
@@ -157,7 +157,7 @@ class PullCommand extends Command
             // Run the steps under a progress bar, with the hint showing the step
             // currently running; each step may return a note for the summary.
             $notes = progress(
-                label: "Pulling '{$key}'",
+                label: "Migrating '{$key}'",
                 steps: $steps,
                 callback: function (array $step, $progress) {
                     [$label, $action] = $step;
@@ -169,7 +169,7 @@ class PullCommand extends Command
                 },
             );
 
-            info("Pulled '{$key}': {$source->host} → {$destination->host}");
+            info("Migrated '{$key}': {$source->host} → {$destination->host}");
 
             $notes = array_values(array_filter($notes, fn ($note) => $note !== null));
 

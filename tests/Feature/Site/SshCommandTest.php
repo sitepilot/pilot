@@ -7,8 +7,8 @@ use Illuminate\Support\Facades\Process;
 
 beforeEach(function () {
     $this->fixtures = __DIR__.'/../../Fixtures';
-    $this->valid = $this->fixtures.'/site-pull';
-    $this->invalid = $this->fixtures.'/site-pull-invalid';
+    $this->valid = $this->fixtures.'/site';
+    $this->invalid = $this->fixtures.'/site-invalid';
 });
 
 it('opens a session on the destination host by default', function () {

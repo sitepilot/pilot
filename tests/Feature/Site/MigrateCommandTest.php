@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\Process;
 
 beforeEach(function () {
     $this->fixtures = __DIR__.'/../../Fixtures';
-    $this->valid = $this->fixtures.'/site-pull';
-    $this->invalid = $this->fixtures.'/site-pull-invalid';
+    $this->valid = $this->fixtures.'/site';
+    $this->invalid = $this->fixtures.'/site-invalid';
 });
 
 it('pulls a fresh wp-cli onto a source that has none, then exports, syncs, imports and rewrites', function () {
@@ -22,9 +22,9 @@ it('pulls a fresh wp-cli onto a source that has none, then exports, syncs, impor
         '*' => Process::result(output: ''),
     ]);
 
-    $this->artisan('site:pull', ['site' => 'example', '--config' => $this->valid, '--force' => true])
+    $this->artisan('site:migrate', ['site' => 'example', '--config' => $this->valid, '--force' => true])
         ->assertExitCode(0)
-        ->expectsOutputToContain("Pulled 'example': 1.2.3.4 → 5.6.7.8")
+        ->expectsOutputToContain("Migrated 'example': 1.2.3.4 → 5.6.7.8")
         ->expectsOutputToContain('Imported the database');
 
     // A fresh wp-cli.phar is pulled onto the source.
@@ -89,7 +89,7 @@ it('uses the source\'s own wp-cli when it is present, without pulling one', func
         '*' => Process::result(output: ''),
     ]);
 
-    $this->artisan('site:pull', ['site' => 'example', '--config' => $this->valid, '--force' => true])
+    $this->artisan('site:migrate', ['site' => 'example', '--config' => $this->valid, '--force' => true])
         ->assertExitCode(0);
 
     // No fresh wp-cli is pulled (the source already has one); detection is still
@@ -109,7 +109,7 @@ it('aligns the destination table prefix to the source when they differ', functio
         '*' => Process::result(output: ''),
     ]);
 
-    $this->artisan('site:pull', ['site' => 'example', '--config' => $this->valid, '--force' => true])
+    $this->artisan('site:migrate', ['site' => 'example', '--config' => $this->valid, '--force' => true])
         ->assertExitCode(0);
 
     Process::assertRan(fn ($p) => is_string($p->command)
@@ -126,7 +126,7 @@ it('leaves the table prefix unchanged when source and destination match', functi
         '*' => Process::result(output: ''),
     ]);
 
-    $this->artisan('site:pull', ['site' => 'example', '--config' => $this->valid, '--force' => true])
+    $this->artisan('site:migrate', ['site' => 'example', '--config' => $this->valid, '--force' => true])
         ->assertExitCode(0)
         ->expectsOutputToContain('Table prefix matches');
 
@@ -140,9 +140,9 @@ it('only syncs files when the source is not WordPress', function () {
         '*' => Process::result(output: ''),
     ]);
 
-    $this->artisan('site:pull', ['site' => 'example', '--config' => $this->valid, '--force' => true])
+    $this->artisan('site:migrate', ['site' => 'example', '--config' => $this->valid, '--force' => true])
         ->assertExitCode(0)
-        ->expectsOutputToContain("Pulled 'example'")
+        ->expectsOutputToContain("Migrated 'example'")
         ->expectsOutputToContain('Synced files');
 
     Process::assertRan(fn ($p) => is_string($p->command)
@@ -164,7 +164,7 @@ it('skips search-replace when the url already matches', function () {
         '*' => Process::result(output: ''),
     ]);
 
-    $this->artisan('site:pull', ['site' => 'example', '--config' => $this->valid, '--force' => true])
+    $this->artisan('site:migrate', ['site' => 'example', '--config' => $this->valid, '--force' => true])
         ->assertExitCode(0)
         ->expectsOutputToContain('Site URL already matches');
 
@@ -178,8 +178,8 @@ it('prompts for the site when no key is given', function () {
         '*' => Process::result(output: ''),
     ]);
 
-    $this->artisan('site:pull', ['--config' => $this->valid, '--force' => true])
-        ->expectsChoice('Which site do you want to pull?', 'example', ['example', 'another-site'])
+    $this->artisan('site:migrate', ['--config' => $this->valid, '--force' => true])
+        ->expectsChoice('Which site do you want to migrate?', 'example', ['example', 'another-site'])
         ->assertExitCode(0);
 
     Process::assertRan(fn ($p) => is_string($p->command) && str_contains($p->command, 'db export'));
@@ -188,7 +188,7 @@ it('prompts for the site when no key is given', function () {
 it('fails and lists the sites for an unknown key', function () {
     Process::fake(['*' => Process::result(output: '')]);
 
-    $this->artisan('site:pull', ['site' => 'nope', '--config' => $this->valid, '--force' => true])
+    $this->artisan('site:migrate', ['site' => 'nope', '--config' => $this->valid, '--force' => true])
         ->assertExitCode(1)
         ->expectsOutputToContain("Unknown site 'nope'")
         ->expectsOutputToContain('example');
@@ -202,7 +202,7 @@ it('asks for confirmation and does nothing when declined', function () {
         '*' => Process::result(output: ''),
     ]);
 
-    $this->artisan('site:pull', ['site' => 'example', '--config' => $this->valid])
+    $this->artisan('site:migrate', ['site' => 'example', '--config' => $this->valid])
         ->expectsConfirmation('Continue?', 'no')
         ->expectsOutputToContain('Aborted.')
         ->assertExitCode(0);
@@ -214,7 +214,7 @@ it('asks for confirmation and does nothing when declined', function () {
 it('fails clearly when pilot.yml is missing required keys', function () {
     Process::fake(['*' => Process::result(output: '')]);
 
-    $this->artisan('site:pull', ['site' => 'example', '--config' => $this->invalid, '--force' => true])
+    $this->artisan('site:migrate', ['site' => 'example', '--config' => $this->invalid, '--force' => true])
         ->assertExitCode(1)
         ->expectsOutputToContain('Invalid pilot.yml:')
         ->expectsOutputToContain('The sites.example.source.host field is required.');
@@ -227,7 +227,7 @@ it('fails when the source is WordPress but the destination is not', function () 
         '*' => Process::result(output: ''),
     ]);
 
-    $this->artisan('site:pull', ['site' => 'example', '--config' => $this->valid, '--force' => true])
+    $this->artisan('site:migrate', ['site' => 'example', '--config' => $this->valid, '--force' => true])
         ->assertExitCode(1)
         ->expectsOutputToContain('WordPress install');
 
