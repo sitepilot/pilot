@@ -2,9 +2,8 @@
 
 namespace App\Commands\Site;
 
-use App\Exceptions\InvalidConfig;
+use App\Commands\Concerns\ResolvesSite;
 use App\Services\Config;
-use App\Services\Migration;
 use App\Services\RemoteWpCli;
 use App\Services\Rsync;
 use App\Services\Ssh;
@@ -17,49 +16,28 @@ use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\note;
 use function Laravel\Prompts\progress;
-use function Laravel\Prompts\select;
 use function Laravel\Prompts\warning;
 
 class PullCommand extends Command
 {
+    use ResolvesSite;
+
     protected $signature = 'site:pull
         {site? : The site key from pilot.yml\'s sites map; prompts if omitted}
         {--config= : Directory containing pilot.yml (defaults to the current working directory)}
         {--force : Skip the confirmation prompt}';
 
-    protected $description = 'Pull a site (files, plus the database for WordPress) from its source host to its destination host, as defined in pilot.yml';
+    protected $description = 'Pull a site\'s files and database from its source host to its destination';
 
     public function handle(Config $config, WpCli $wp, RemoteWpCli $sourceWp, Rsync $rsync, Ssh $ssh): int
     {
-        $dir = $this->option('config') ?: getcwd();
+        $resolved = $this->resolveSite($config, 'pull');
 
-        try {
-            $data = $config->load($dir, Migration::RULES);
-        } catch (InvalidConfig $e) {
-            error('Invalid pilot.yml:');
-            note(implode(PHP_EOL, array_map(fn (string $err) => '• '.$err, $e->errors)));
-
-            return self::FAILURE;
-        } catch (Throwable $e) {
-            error($e->getMessage());
-
+        if ($resolved === null) {
             return self::FAILURE;
         }
 
-        // Resolve which site to pull: the positional argument, or an interactive
-        // pick from the configured keys when it is omitted. Use ?? (not ?:) so a
-        // site literally keyed "0" is still selectable.
-        $sites = $data['sites'];
-        $key = $this->argument('site') ?? select('Which site do you want to pull?', array_keys($sites));
-
-        if (! isset($sites[$key])) {
-            error("Unknown site '{$key}'.");
-            note('Available sites: '.implode(', ', array_keys($sites)).'.');
-
-            return self::FAILURE;
-        }
-
-        $migration = Migration::fromArray($sites[$key]);
+        [$key, $migration] = $resolved;
         $source = $migration->source;
         $destination = $migration->destination;
 

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Process;
 use RuntimeException;
+use Symfony\Component\Process\Process as SymfonyProcess;
 
 /**
  * Runs a command on a remote host over SSH.
@@ -25,6 +26,31 @@ class Ssh
      * host keys, and cap the connect wait so an unreachable host errors promptly.
      */
     public const OPTIONS = '-o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=10';
+
+    /**
+     * Interactive SSH options: like {@see OPTIONS} but without `BatchMode=yes`, so
+     * password and host-key prompts work when a human is at the terminal.
+     */
+    public const INTERACTIVE_OPTIONS = '-o StrictHostKeyChecking=accept-new -o ConnectTimeout=10';
+
+    /**
+     * Open an interactive login shell on the host, attaching the operator's
+     * terminal. Unlike {@see run()}/{@see output()}/{@see probe()} this drops
+     * BatchMode so prompts work, forces a PTY (`ssh -t`), runs no remote command,
+     * and blocks until the session ends. Returns ssh's exit code.
+     */
+    public function interactive(Remote $remote): int
+    {
+        $process = Process::forever();
+
+        // A TTY is what makes the session interactive, but enabling it without one
+        // available (e.g. under test) throws, so only attach it when present.
+        if (SymfonyProcess::isTtySupported()) {
+            $process->tty();
+        }
+
+        return $process->run($this->wrapInteractive($remote))->exitCode();
+    }
 
     /**
      * Run a command on the host, throwing the trimmed stderr (or a fallback) on a
@@ -77,6 +103,16 @@ class Ssh
             self::OPTIONS,
             escapeshellarg($remote->sshHost()),
             escapeshellarg($command),
+        );
+    }
+
+    private function wrapInteractive(Remote $remote): string
+    {
+        return sprintf(
+            'ssh -t -p %d %s %s',
+            $remote->port,
+            self::INTERACTIVE_OPTIONS,
+            escapeshellarg($remote->sshHost()),
         );
     }
 }
